@@ -21,3 +21,6 @@ flutter build web \
 
 echo "--- build/web contents ---"
 ls build/web
+
+# Copy built output to web/ so wrangler picks up the compiled files
+cp -r build/web/. web/
