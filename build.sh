@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-FLUTTER_VERSION="3.32.0"
+FLUTTER_VERSION="3.41.5"
 FLUTTER_DIR="$HOME/flutter"
 
 if [ ! -d "$FLUTTER_DIR" ]; then
