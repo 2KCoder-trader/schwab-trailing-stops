@@ -19,5 +19,3 @@ flutter build web \
   --dart-define=APP_KEY=${APP_KEY} \
   --dart-define=APP_SECRET=${APP_SECRET}
 
-echo "--- build/web contents ---"
-ls build/web
