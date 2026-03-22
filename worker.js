@@ -10,7 +10,8 @@ export default {
       return handleTokenRefresh(request, env);
     }
 
-    return env.ASSETS.fetch(request);
+    // Fall through to static assets
+    return fetch(request);
   }
 };
 
