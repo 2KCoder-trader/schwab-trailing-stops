@@ -7,7 +7,7 @@ class AuthService {
       const String.fromEnvironment('APP_KEY', defaultValue: 'YOUR_APP_KEY');
   static String get _appSecret =>
       const String.fromEnvironment('APP_SECRET', defaultValue: 'YOUR_APP_SECRET');
-  static const String redirectUri = 'https://127.0.0.1:8080';
+  static const String redirectUri = 'https://trade.dataflexlab.com';
   static String get authUrl =>
       'https://api.schwabapi.com/v1/oauth/authorize?client_id=$_appKey&redirect_uri=$redirectUri';
   static const String tokenUrl = 'https://api.schwabapi.com/v1/oauth/token';
