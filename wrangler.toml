@@ -1,5 +1,7 @@
 name = "schwab-trailing-stops"
 compatibility_date = "2025-03-22"
+main = "worker.js"
 
 [assets]
 directory = "build/web"
+binding = "ASSETS"

@@ -12,8 +12,8 @@ fi
 
 export PATH="$FLUTTER_DIR/bin:$PATH"
 
-if [ -z "${APP_KEY}" ] || [ -z "${APP_SECRET}" ]; then
-  echo "ERROR: APP_KEY and APP_SECRET must be set as build environment variables in Cloudflare."
+if [ -z "${APP_KEY}" ]; then
+  echo "ERROR: APP_KEY must be set as a build environment variable in Cloudflare."
   exit 1
 fi
 
@@ -21,6 +21,5 @@ flutter config --no-analytics
 flutter pub get
 flutter build web \
   --base-href / \
-  --dart-define=APP_KEY=${APP_KEY} \
-  --dart-define=APP_SECRET=${APP_SECRET}
+  --dart-define=APP_KEY=${APP_KEY}
 

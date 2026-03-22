@@ -4,22 +4,16 @@ import 'package:web/web.dart' as web;
 
 class AuthService {
   static String get _appKey =>
-      const String.fromEnvironment('APP_KEY', defaultValue: 'YOUR_APP_KEY');
-  static String get _appSecret =>
-      const String.fromEnvironment('APP_SECRET', defaultValue: 'YOUR_APP_SECRET');
+      const String.fromEnvironment('APP_KEY', defaultValue: '');
   static const String redirectUri = 'https://trade.dataflexlab.com';
   static String get authUrl =>
       'https://api.schwabapi.com/v1/oauth/authorize?client_id=$_appKey&redirect_uri=$redirectUri';
-  static const String tokenUrl = 'https://api.schwabapi.com/v1/oauth/token';
 
-  // Token storage (in-memory for web, use flutter_secure_storage for mobile)
+  // Token storage (in-memory for web)
   static String? _accessToken;
   static String? _refreshToken;
   static DateTime? _accessTokenExpiry;
   static DateTime? _refreshTokenExpiry;
-
-  static String get _basicAuth =>
-      base64Encode(utf8.encode('$_appKey:$_appSecret'));
 
   static bool get hasValidRefreshToken {
     if (_refreshToken == null || _refreshTokenExpiry == null) return false;
@@ -49,13 +43,9 @@ class AuthService {
   static Future<bool> exchangeCodeForTokens(String code) async {
     try {
       final response = await http.post(
-        Uri.parse(tokenUrl),
-        headers: {
-          'Authorization': 'Basic $_basicAuth',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body:
-            'grant_type=authorization_code&code=${Uri.encodeComponent(code)}&redirect_uri=${Uri.encodeComponent(redirectUri)}',
+        Uri.parse('/api/token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'code': code}),
       );
 
       if (response.statusCode != 200) {
@@ -80,13 +70,9 @@ class AuthService {
 
     try {
       final response = await http.post(
-        Uri.parse(tokenUrl),
-        headers: {
-          'Authorization': 'Basic $_basicAuth',
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body:
-            'grant_type=refresh_token&refresh_token=${Uri.encodeComponent(_refreshToken!)}',
+        Uri.parse('/api/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': _refreshToken}),
       );
 
       if (response.statusCode != 200) {
