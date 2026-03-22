@@ -15,5 +15,6 @@ export PATH="$FLUTTER_DIR/bin:$PATH"
 flutter config --no-analytics
 flutter pub get
 flutter build web \
+  --base-href / \
   --dart-define=APP_KEY=${APP_KEY} \
   --dart-define=APP_SECRET=${APP_SECRET}
