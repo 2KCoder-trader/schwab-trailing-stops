@@ -1,0 +1,6 @@
+server:
+  host: "127.0.0.1"
+  port: 8080
+  https:
+    cert-path: "dev/127.0.0.1.pem"
+    cert-key-path: "dev/127.0.0.1-key.pem"
