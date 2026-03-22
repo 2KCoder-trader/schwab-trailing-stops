@@ -3,11 +3,16 @@ import 'package:http/http.dart' as http;
 import 'package:web/web.dart' as web;
 
 class AuthService {
-  static String get _appKey =>
-      const String.fromEnvironment('APP_KEY', defaultValue: '');
   static const String redirectUri = 'https://trade.dataflexlab.com';
-  static String get authUrl =>
-      'https://api.schwabapi.com/v1/oauth/authorize?client_id=$_appKey&redirect_uri=$redirectUri';
+
+  // In dev (localhost) call the local wrangler instance; in prod call the deployed worker.
+  static String get _apiBase {
+    final host = web.window.location.hostname;
+    if (host == 'localhost' || host == '127.0.0.1') {
+      return 'http://localhost:8787';
+    }
+    return 'https://trail-stop-api.kaidenkrenek.workers.dev';
+  }
 
   // Token storage (in-memory for web)
   static String? _accessToken;
@@ -27,15 +32,19 @@ class AuthService {
 
   static String? get accessToken => _accessToken;
 
-  static void redirectToLogin() {
-    web.window.location.href = authUrl;
+  static Future<void> redirectToLogin() async {
+    final response = await http.get(Uri.parse('$_apiBase/auth-url'));
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      web.window.location.href = data['url'] as String;
+    }
   }
 
   static String? getAuthCodeFromUrl() {
     final uri = Uri.parse(web.window.location.href);
     final code = uri.queryParameters['code'];
     if (code != null) {
-      web.window.history.replaceState(null, '', redirectUri);
+      web.window.history.replaceState(null, '', '/');
     }
     return code;
   }
@@ -43,7 +52,7 @@ class AuthService {
   static Future<bool> exchangeCodeForTokens(String code) async {
     try {
       final response = await http.post(
-        Uri.parse('/api/token'),
+        Uri.parse('$_apiBase/token'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'code': code}),
       );
@@ -56,7 +65,7 @@ class AuthService {
       final data = jsonDecode(response.body);
       _accessToken = data['access_token'];
       _refreshToken = data['refresh_token'];
-      _accessTokenExpiry = DateTime.now().add(const Duration(minutes: 30));
+      _accessTokenExpiry = DateTime.now().add(Duration(seconds: data['expires_in'] ?? 1800));
       _refreshTokenExpiry = DateTime.now().add(const Duration(days: 7));
       return true;
     } catch (e) {
@@ -70,7 +79,7 @@ class AuthService {
 
     try {
       final response = await http.post(
-        Uri.parse('/api/refresh'),
+        Uri.parse('$_apiBase/refresh'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh_token': _refreshToken}),
       );
@@ -82,8 +91,7 @@ class AuthService {
 
       final data = jsonDecode(response.body);
       _accessToken = data['access_token'];
-      _accessTokenExpiry =
-          DateTime.now().add(Duration(seconds: data['expires_in'] ?? 1800));
+      _accessTokenExpiry = DateTime.now().add(Duration(seconds: data['expires_in'] ?? 1800));
       if (data['refresh_token'] != null) {
         _refreshToken = data['refresh_token'];
         _refreshTokenExpiry = DateTime.now().add(const Duration(days: 7));

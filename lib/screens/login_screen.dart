@@ -28,8 +28,8 @@ class LoginScreen extends StatelessWidget {
             ),
             const SizedBox(height: 40),
             ElevatedButton(
-              onPressed: () {
-                AuthService.redirectToLogin();
+              onPressed: () async {
+                await AuthService.redirectToLogin();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00BFA5),

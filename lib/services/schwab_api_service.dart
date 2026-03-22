@@ -159,7 +159,7 @@ class SchwabApiService {
 
   static Future<List<Map<String, dynamic>>?> fetchPriceHistory(
       String symbol, int startDateMs, int endDateMs,
-      {String periodType = 'month', String frequencyType = 'daily', int frequency = 1}) async {
+      {String frequencyType = 'daily', int frequency = 1}) async {
     final token = await AuthService.getAccessToken();
     if (token == null) return null;
 
@@ -167,7 +167,6 @@ class SchwabApiService {
       final response = await http.get(
         Uri.parse('$_marketDataUrl/pricehistory').replace(queryParameters: {
           'symbol': symbol,
-          'periodType': periodType,
           'frequencyType': frequencyType,
           'frequency': frequency.toString(),
           'startDate': startDateMs.toString(),
@@ -175,18 +174,30 @@ class SchwabApiService {
         }),
         headers: {'Authorization': 'Bearer $token'},
       );
-      print(
-          'priceHistory $symbol ($frequencyType/$frequency): status=${response.statusCode} body=${response.body.substring(0, response.body.length.clamp(0, 200))}');
-
       if (response.statusCode != 200) {
-        print('Price history failed $symbol: ${response.statusCode} ${response.body}');
+        print('priceHistory $symbol FAILED: status=${response.statusCode} body=${response.body}');
         return null;
       }
 
       final data = jsonDecode(response.body) as Map<String, dynamic>;
       final candles = data['candles'];
-      if (candles is! List) return null;
-      return candles.whereType<Map<String, dynamic>>().toList();
+      if (candles is! List) {
+        print('priceHistory $symbol: no candles field in response: ${response.body}');
+        return null;
+      }
+
+      final result = candles.whereType<Map<String, dynamic>>().toList();
+      final highs = result.map((c) => c['high']).toList();
+      final lows = result.map((c) => c['low']).toList();
+      print('priceHistory $symbol ($frequencyType/$frequency): '
+          '${result.length} candles | '
+          'start=${DateTime.fromMillisecondsSinceEpoch(startDateMs).toIso8601String()} '
+          'end=${DateTime.fromMillisecondsSinceEpoch(endDateMs).toIso8601String()} | '
+          'high=${highs.isNotEmpty ? highs.reduce((a, b) => (a as num) > (b as num) ? a : b) : "n/a"} '
+          'low=${lows.isNotEmpty ? lows.reduce((a, b) => (a as num) < (b as num) ? a : b) : "n/a"} | '
+          'first=${result.isNotEmpty ? DateTime.fromMillisecondsSinceEpoch((result.first['datetime'] as num).toInt()).toIso8601String() : "n/a"} '
+          'last=${result.isNotEmpty ? DateTime.fromMillisecondsSinceEpoch((result.last['datetime'] as num).toInt()).toIso8601String() : "n/a"}');
+      return result;
     } catch (e) {
       print('Price history error $symbol: $e');
       return null;

@@ -278,6 +278,8 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
       PortfolioScreen.fakePriceHistoryResponse;
   Timer? _timer;
   Timer? _historyTimer;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -293,6 +295,7 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
   void dispose() {
     _timer?.cancel();
     _historyTimer?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -350,24 +353,23 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
 
         final String freqType;
         final int freq;
-        final String periodType;
         if (daysSinceEntry < 2) {
-          periodType = 'day';
           freqType = 'minute';
           freq = 1;
-        } else if (daysSinceEntry < 7) {
-          periodType = 'day';
+        } else if (daysSinceEntry < 5) {
+          freqType = 'minute';
+          freq = 5;
+        } else if (daysSinceEntry < 10) {
           freqType = 'minute';
           freq = 30;
         } else {
-          periodType = 'month';
           freqType = 'daily';
           freq = 1;
         }
 
         final candles = await SchwabApiService.fetchPriceHistory(
             e.key, e.value, nowMs,
-            periodType: periodType, frequencyType: freqType, frequency: freq);
+            frequencyType: freqType, frequency: freq);
         return MapEntry(e.key, candles ?? <Map<String, dynamic>>[]);
       }),
     );
@@ -411,12 +413,11 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
         final String enteredTime = trailOrder['enteredTime'];
         final double highestHigh = PortfolioScreen._findHighestSinceEntry(
             symbol, enteredTime, _priceHistoryResponse);
-        print(
-            '[$symbol] enteredTime=$enteredTime highestHigh=$highestHigh candleCount=${_priceHistoryResponse[symbol]?.length ?? 0} curPrice=$marketPrice');
         if (highestHigh > 0) {
           trailStop = highestHigh - trailOffset;
           trailStopValid = true;
         }
+
       }
 
       return {
@@ -489,19 +490,30 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
+              controller: _searchController,
+              onChanged: (val) => setState(() => _searchQuery = val.trim().toUpperCase()),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: const Color(0xFF102A43),
-                hintText: 'Search equity — not implemented yet',
+                hintText: 'Search positions...',
                 hintStyle: const TextStyle(color: Colors.grey),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                suffixIcon: Visibility(
+                  visible: _searchQuery.isNotEmpty,
+                  child: IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() => _searchQuery = '');
+                    },
+                  ),
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
-              onSubmitted: (_) => _showNotImplemented(context, 'Search'),
             ),
           ),
           const SizedBox(height: 16),
@@ -561,24 +573,29 @@ class _PortfolioScreenState extends State<PortfolioScreen> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
+            child: Builder(builder: (context) {
+              final filtered = _searchQuery.isEmpty
+                  ? stockData
+                  : stockData.where((s) => (s['ticker'] as String).contains(_searchQuery)).toList();
+              return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: stockData.length,
+              itemCount: filtered.length,
               itemBuilder: (context, index) {
+                final stock = filtered[index];
                 return GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            TradePage(stock: stockData[index]),
+                        builder: (context) => TradePage(stock: stock),
                       ),
                     );
                   },
-                  child: _buildStockRow(context, stockData[index]),
+                  child: _buildStockRow(context, stock),
                 );
               },
-            ),
+            );
+            }),
           ),
         ],
       ),
